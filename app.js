@@ -1,87 +1,83 @@
-require('colors');
+require("colors");
 
-const Tareas = require('./Models/Tareas.js');
+const Tareas = require("./Models/Tareas.js");
 
-const { 
-    inquirerMenu, 
-    pausa,
-    leerInput ,
-    listadoTareasBorrar,
-    validador,
-    mostrarListadoChecklist
-} = require('./helpers/inquirer.js');
+const {
+  inquirerMenu,
+  pausa,
+  leerInput,
+  listadoTareasBorrar,
+  validador,
+  mostrarListadoChecklist,
+} = require("./helpers/inquirer.js");
 
-const { guardarDB, leerDB } = require('./helpers/manejarDB.js');
+const { guardarDB, leerDB } = require("./helpers/manejarDB.js");
 
-const main = async() => {
+const main = async () => {
+  let opt = "";
 
-    let opt = '';
+  const tareas = new Tareas();
+  const tareasDB = leerDB();
 
-    const tareas = new Tareas;
-    const tareasDB = leerDB()
+  // Probablemente esto este demas, solo hace falta pasar tareasDB
+  if (tareasDB) {
+    tareas.cargarTareasFromArray(tareasDB);
+  }
 
-    // Probablemente esto este demas, solo hace falta pasar tareasDB
-    if ( tareasDB ) {
-        tareas.cargarTareasFromArray( tareasDB ); 
-    }
+  do {
+    // AWAIT: Esperate a que tengamos una respuesta de la funcion inquirerMenu() he imprime el menu
+    opt = await inquirerMenu();
 
-    do {
+    switch (opt) {
+      case "1":
+        const desc = await leerInput("Descripción de la nueva tarea: ");
+        tareas.crearTarea(desc);
+        break;
 
-        // AWAIT: Esperate a que tengamos una respuesta de la funcion inquirerMenu() he imprime el menu 
-        opt = await inquirerMenu();
+      case "2":
+        tareas.listadoCompleto();
+        break;
 
-        switch ( opt ) {
-            
-            case '1':
-                const desc = await leerInput('Descripción de la nueva tarea: ');
-                tareas.crearTarea( desc );
-            break;
+      case "3":
+        tareas.listarTareasByStatus();
+        break;
 
-            case '2':
-               tareas.listadoCompleto();
-            break;
+      case "4":
+        tareas.listarTareasByStatus(false);
+        break;
 
-            case '3':
-                tareas.listarTareasByStatus ();
-            break;
+      case "5":
+        const ids = await mostrarListadoChecklist(tareas.listadoArr);
 
-            case '4':
-                tareas.listarTareasByStatus ( false );
-            break;
+        console.log({ ids });
 
-            case '5':
+        tareas.toggleCompletadas(ids);
 
-                const ids = await mostrarListadoChecklist( tareas.listadoArr );
-                tareas.toggleCompletadas( ids );
+        break;
 
-            break;
+      case "6":
+        const id = await listadoTareasBorrar(tareas.listadoArr);
 
-            case '6':
-                const id = await listadoTareasBorrar ( tareas.listadoArr );
-                
-                if ( id !== '0' ) {
-                    
-                    const ok = await validador ( '¿Estás seguro que deseas eliminarlo?' );
-                    
-                    if ( ok ) {
-                        tareas.borrarTarea( id )
-                    } else {
-                        console.log('No se eliminó ninguna tarea'.yellow)
-                    }
-                }              
-                
-            break;
-        
-            default:
-            break;
+        if (id !== "0") {
+          const ok = await validador("¿Estás seguro que deseas eliminarlo?");
+
+          if (ok) {
+            tareas.borrarTarea(id);
+          } else {
+            console.log("No se eliminó ninguna tarea".yellow);
+          }
         }
 
-        guardarDB( tareas.listadoArr);
-    
-        await pausa();
+        break;
 
-    } while ( opt !== '0' );
-    
+      default:
+        break;
+    }
+
+    guardarDB(tareas.listadoArr);
+
+    await pausa();
+  } while (opt !== "0");
 };
 
 main();
